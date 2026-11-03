@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VectorEd Academy | Smart Program Matcher &amp; Package Gateway</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@700;800;900&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- MathJax CDN for LaTeX Scientific Notation -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$']],
+        processEscapes: true
+      },
+      options: {
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process'
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" crossorigin="anonymous"></script>
+
+  <!-- Tailwind CSS CDN & Custom Config -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navyDark: '#0B192C',
+              navy: '#1C2D4A',
+              navyCard: '#152238',
+              gold: '#F5A623',
+              goldHover: '#E09216',
+              accentRed: '#FF6500',
+              cream: '#FFFDF6',
+              borderDark: '#253A5E'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Montserrat', 'sans-serif'],
+            mono: ['Roboto Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0B192C;
+      color: #F8F9FA;
+      overflow-x: hidden;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      text-rendering: optimizeLegibility;
+    }
+    .gold-glow {
+      box-shadow: 0 0 25px rgba(245, 166, 35, 0.28);
+    }
+    .stem-grid-bg {
+      background-image: radial-gradient(rgba(245, 166, 35, 0.09) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .glass-panel {
+      background: rgba(28, 45, 74, 0.88);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(245, 166, 35, 0.3);
+    }
+    .toast-msg {
+      transform: translateY(100%);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    }
+    .toast-msg.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .option-pill-btn {
+      transition: all 0.2s ease-in-out;
+    }
+    .option-pill-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Admin CMS Highlight Styling */
+    body.admin-mode-active [contenteditable="true"] {
+      outline: 2px dashed #F5A623 !important;
+      outline-offset: 4px;
+      cursor: text;
+      background-color: rgba(245, 166, 35, 0.12);
+      border-radius: 6px;
+      padding: 2px 4px;
+    }
+    body.admin-mode-active [contenteditable="true"]:focus {
+      outline: 2px solid #38BDF8 !important;
+      background-color: rgba(56, 189, 248, 0.18);
+    }
+    .edit-admin-only {
+      display: none !important;
+    }
+    body.admin-mode-active .edit-admin-only {
+      display: inline-flex !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased stem-grid-bg">
+
+  <!-- ADMIN TOOLBAR (Hidden by default, unlocked via password) -->
+  <div id="adminToolbar" class="sticky top-0 z-50 bg-gradient-to-r from-amber-600 via-brand-gold to-amber-600 text-brand-navyDark px-3 py-2 shadow-2xl flex flex-wrap items-center justify-between gap-2 text-xs font-extrabold border-b border-amber-300 hidden">
+    <div class="flex items-center gap-2 sm:gap-3">
+      <span class="bg-brand-navyDark text-brand-gold px-2.5 py-1 rounded-lg font-mono text-[11px] animate-pulse shrink-0">
+        <i class="fa-solid fa-lock-open"></i> ADMIN CMS ACTIVE
+      </span>
+      <span class="hidden md:inline">Click text to edit directly or manage questions &amp; packages in CMS2.</span>
+    </div>
+
+    <div class="flex items-center gap-1.5 flex-wrap">
+      <button onclick="openManageMatcherModal()" class="bg-brand-navyDark text-brand-gold hover:bg-slate-900 border border-brand-gold/50 px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 text-[11px]">
+        <i class="fa-solid fa-language"></i> Edit Dual-Lang (CMS_STATE2)
+      </button>
+
+      <button onclick="openPasswordModal()" class="bg-amber-900 hover:bg-slate-900 text-white px-2 py-1 rounded-lg transition text-[11px]">
+        <i class="fa-solid fa-key"></i> Password
+      </button>
+
+      <button onclick="saveAllPortalChanges()" class="bg-emerald-800 hover:bg-emerald-900 text-white px-2.5 py-1 rounded-lg shadow transition flex items-center gap-1 text-[11px]">
+        <i class="fa-solid fa-floppy-disk"></i> Save
+      </button>
+
+      <button onclick="logoutAdmin()" class="bg-red-700 hover:bg-red-800 text-white px-2 py-1 rounded-lg transition text-[11px]" title="Logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- NAVIGATION HEADER (Matching target UI design) -->
+  <nav class="bg-brand-navy/95 backdrop-blur-md border-b border-brand-borderDark sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+      
+      <!-- Brand Logo & Title -->
+      <a href="#" class="flex items-center gap-3 group shrink-0">
+        <img src="https://iili.io/ndL8PQj.png" alt="VectorEd Emblem" class="h-10 sm:h-11 w-auto object-contain group-hover:scale-105 transition duration-300">
+        <div>
+          <span class="font-heading font-black text-base sm:text-xl text-white tracking-tight block leading-none">
+            VECTOR<span class="text-brand-gold">ED</span> ACADEMY
+          </span>
+          <span class="text-[9px] sm:text-[10px] text-slate-400 tracking-widest uppercase font-semibold block mt-1">
+            Smart Program Matcher &amp; Package Gateway
+          </span>
+        </div>
+      </a>
+
+      <!-- Controls Right: Admin Access + Master Calendar + Language Switcher -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        
+        <!-- DUAL LANGUAGE SWITCHER TOGGLE -->
+        <div class="bg-brand-navyDark p-1 rounded-xl border border-brand-borderDark flex items-center shrink-0 shadow-inner">
+          <button type="button" id="langBtnEN" onclick="setLanguage('en')" class="px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all duration-200 bg-brand-gold text-brand-navyDark shadow">
+            EN
+          </button>
+          <button type="button" id="langBtnFIL" onclick="setLanguage('fil')" class="px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all duration-200 text-slate-400 hover:text-white">
+            FIL
+          </button>
+        </div>
+
+        <button id="btnAdminLogin" onclick="openAdminAuthModal()" class="bg-brand-navyDark hover:bg-slate-800 text-brand-gold border border-brand-gold/40 hover:border-brand-gold font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 min-h-[44px]">
+          <i class="fa-solid fa-user-gear"></i>
+          <span class="hidden sm:inline">Admin Access</span>
+        </button>
+
+        <a href="https://vectored-academy-calendar.netlify.app/" target="_blank" rel="noopener noreferrer" class="bg-brand-gold hover:bg-brand-goldHover text-brand-navyDark font-extrabold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1.5 min-h-[44px] shadow-lg shrink-0">
+          <i class="fa-solid fa-calendar-days text-sm"></i>
+          <span class="hidden sm:inline">Master Calendar</span>
+          <span class="sm:hidden">Calendar</span>
+        </a>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+    
+    <!-- HERO HEADER BLOCK -->
+    <div class="text-center space-y-3">
+      <div class="inline-flex items-center gap-2 bg-brand-navy border border-brand-gold/40 px-3.5 py-1.5 rounded-full text-xs font-semibold text-brand-gold shadow-md">
+        <span class="animate-pulse text-amber-400">●</span>
+        <span id="txtBadge">Smart Program Matcher</span>
+      </div>
+      <h1 id="txtTitle" class="text-2xl sm:text-4xl font-heading font-black text-white tracking-tight leading-tight">
+        Find the Right Package for you
+      </h1>
+      <p id="txtSubheadline" class="text-slate-300 text-xs sm:text-sm max-w-xl mx-auto font-normal leading-relaxed">
+        Answer 5 quick diagnostic questions to evaluate your academic needs and unlock your tailored STEM tutoring program.
+      </p>
+    </div>
+
+    <!-- ISOLATED SMART PROGRAM MATCHER CONTAINER -->
+    <section id="smartProgramMatcherDashboard" class="bg-brand-navyCard p-5 sm:p-8 rounded-3xl border border-brand-borderDark shadow-2xl space-y-6 relative overflow-hidden">
+      
+      <!-- Card Header -->
+      <div class="flex items-center justify-between gap-2 pb-4 border-b border-brand-borderDark">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-brand-gold/15 border border-brand-gold/40 text-brand-gold flex items-center justify-center text-lg shrink-0">
+            <i class="fa-solid fa-graduation-cap"></i>
+          </div>
+          <div>
+            <h2 id="txtMatcherMainHeader" class="text-base sm:text-lg font-heading font-extrabold text-white tracking-tight leading-tight">
+              1. Diagnostic Assessment Questions
+            </h2>
+            <p id="txtSubHeaderDesc" class="text-xs text-slate-300">Complete Q1 to Q5 to determine your optimal package match.</p>
+          </div>
+        </div>
+
+        <button type="button" onclick="openManageMatcherModal()" class="edit-admin-only bg-amber-800 hover:bg-amber-700 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold items-center gap-1 shadow">
+          <i class="fa-solid fa-gear"></i> Manage CMS2
+        </button>
+      </div>
+
+      <!-- QUIZ DIAGNOSTIC ASSESSMENT INTERFACE -->
+      <div id="matcherQuizContainer" class="space-y-5">
+        <!-- Progress Bar -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between items-center text-xs font-bold text-slate-300 font-mono">
+            <span id="quizStepLabel">Diagnostic Assessment (Question 1 of 5)</span>
+            <span id="quizPercentLabel" class="text-brand-gold">20% Completed</span>
+          </div>
+          <div class="w-full bg-brand-navy h-2.5 rounded-full overflow-hidden border border-brand-borderDark">
+            <div id="quizProgressBar" class="bg-gradient-to-r from-amber-500 to-brand-gold h-full w-1/5 transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <!-- Question Body Card -->
+        <div class="bg-brand-navy p-5 sm:p-6 rounded-2xl border border-brand-borderDark space-y-4 shadow-inner">
+          <div class="flex items-start gap-3">
+            <span id="questionNumBadge" class="bg-brand-gold/20 text-brand-gold border border-brand-gold/40 text-xs font-mono font-bold px-3 py-1 rounded-xl shrink-0 mt-0.5">
+              Q1
+            </span>
+            <h3 id="questionTextDisplay" class="text-sm sm:text-base font-bold text-white leading-relaxed">
+              What is currently happening with your studies?
+            </h3>
+          </div>
+
+          <!-- Options Grid (Optimized 48px Touch Targets) -->
+          <div id="quizOptionsContainer" class="grid grid-cols-1 gap-3 pt-1">
+            <!-- Dynamically populated options -->
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex justify-between items-center gap-3 pt-2">
+          <button type="button" id="btnQuizPrev" onclick="navigateQuizStep(-1)" disabled class="bg-brand-navy border border-brand-borderDark text-slate-300 disabled:opacity-40 font-bold px-5 py-3.5 rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 min-h-[48px] flex-1">
+            <i class="fa-solid fa-arrow-left"></i> <span id="txtBtnPrevLabel">Previous</span>
+          </button>
+          
+          <button type="button" id="btnQuizNext" onclick="navigateQuizStep(1)" disabled class="bg-brand-gold hover:bg-brand-goldHover active:scale-[0.98] disabled:opacity-50 text-brand-navyDark font-black px-5 py-3.5 rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-lg min-h-[48px] flex-1">
+            <span id="txtBtnNextLabel">Next Question</span> <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- MATCHER RESULT DASHBOARD CARD (Hidden until quiz completion) -->
+      <div id="matcherResultContainer" class="hidden space-y-5">
+        <div class="bg-gradient-to-br from-[#1C2D4A] via-[#152238] to-[#0B192C] p-5 sm:p-7 rounded-3xl border border-brand-gold/60 shadow-2xl space-y-5">
+          
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-4 border-b border-brand-borderDark">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span id="txtResTitleBadge" class="text-xs font-mono font-extrabold text-brand-gold uppercase tracking-wider">
+                YOUR RECOMMENDED PROGRAM MATCH
+              </span>
+            </div>
+            
+            <div class="bg-brand-navyDark border border-brand-gold/40 px-3.5 py-1.5 rounded-xl text-xs font-mono text-slate-200">
+              <span id="txtAnswersLabel">Answers (Q1-Q5):</span> <span id="resShorthandAnswers" class="text-brand-gold font-bold">A, B, C, A, B</span>
+            </div>
+          </div>
+
+          <!-- Main Result Layout -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-center">
+            <!-- Package Image Card -->
+            <div class="relative rounded-2xl overflow-hidden border border-brand-borderDark shadow-2xl bg-brand-navyDark aspect-[16/10] flex items-center justify-center">
+              <img id="resPkgImage" src="https://placehold.co/600x400/1C2D4A/F5A623?text=Mastery+Package" alt="Recommended Package" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x400/1C2D4A/F5A623?text=VectorEd+Package'">
+              <div class="absolute inset-0 bg-gradient-to-t from-brand-navyDark/90 via-transparent to-transparent flex items-end p-4">
+                <span id="resPkgBadge" class="bg-brand-gold text-brand-navyDark text-xs font-black uppercase tracking-wider px-3 py-1 rounded-lg shadow">
+                  PRIMARY MATCH
+                </span>
+              </div>
+            </div>
+
+            <!-- Details & Benefits -->
+            <div class="space-y-4">
+              <div>
+                <h3 id="resPkgTitle" class="text-xl sm:text-2xl font-heading font-black text-white">Mastery Package (7 Hours)</h3>
+                <p id="resPkgDesc" class="text-xs sm:text-sm text-slate-300 leading-relaxed mt-1">
+                  Designed for students struggling with several topics or needing structured guided practice and problem-solving techniques.
+                </p>
+              </div>
+
+              <!-- Pricing Pill Grid -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div class="bg-brand-navy p-4 rounded-2xl border border-brand-borderDark space-y-1">
+                  <span id="lblOnlineTutoringRate" class="text-[11px] text-slate-400 uppercase font-mono font-bold block"><i class="fa-solid fa-laptop text-brand-gold mr-1"></i> Online Tutoring Rate</span>
+                  <span id="resOnlinePrice" class="text-lg sm:text-xl font-black text-brand-gold">₱5,000</span>
+                  <span id="resOnlineHours" class="text-xs text-slate-300 block">7 Hours Included</span>
+                </div>
+
+                <div class="bg-brand-navy p-4 rounded-2xl border border-brand-borderDark space-y-1">
+                  <span class="text-[11px] text-slate-400 uppercase font-mono font-bold block flex items-center justify-between">
+                    <span id="lblF2FTutoringRate"><i class="fa-solid fa-users text-brand-gold mr-1"></i> Face-to-Face Rate</span>
+                    <span class="text-[9px] text-amber-400 font-normal italic lowercase">(excluding fare)</span>
+                  </span>
+                  <span id="resF2FPrice" class="text-lg sm:text-xl font-black text-white">₱6,000</span>
+                  <span id="resF2FHours" class="text-xs text-slate-300 block">7 Hours F2F <span class="text-slate-400 italic font-normal text-[9px]">(excluding fare)</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TWO SEAMLESS TRIAL ACTION PATHS -->
+          <div class="pt-4 border-t border-brand-borderDark grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Action Path 1: Free 20-Min Trial Direct Redirect -->
+            <button type="button" onclick="triggerActionPathFreeTrial()" class="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-extrabold p-4 rounded-2xl text-xs sm:text-sm transition shadow-lg flex items-center justify-center gap-2 min-h-[52px]">
+              <i class="fa-solid fa-gift text-sm"></i>
+              <span id="txtBtnFreeTrial">Claim Free 20-Min Trial</span>
+            </button>
+
+            <!-- Action Path 2: Paid 1-2 Hr Trial Class Direct Link -->
+            <button type="button" onclick="triggerActionPathPaidTrial()" class="bg-brand-gold hover:bg-brand-goldHover active:scale-[0.98] text-brand-navyDark font-black p-4 rounded-2xl text-xs sm:text-sm transition gold-glow flex items-center justify-center gap-2 min-h-[52px]">
+              <i class="fa-solid fa-calendar-check text-sm"></i>
+              <span id="txtBtnPaidTrial">Book Paid 1-2 Hr Trial Class</span>
+            </button>
+          </div>
+
+          <div class="text-center pt-2">
+            <button type="button" onclick="retakeDiagnosticQuiz()" class="text-xs text-slate-400 hover:text-brand-gold font-bold underline transition py-1">
+              <i class="fa-solid fa-rotate-left mr-1"></i> <span id="txtBtnRetake">Retake Diagnostic Assessment</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-brand-navyDark border-t border-brand-borderDark py-8 text-slate-400 text-xs mt-auto">
+    <div class="max-w-6xl mx-auto px-4 text-center space-y-2">
+      <p>© 2026 VectorEd Academy. All rights reserved. Registered STEM Educational Brand.</p>
+      <p class="text-[11px] text-slate-500 font-mono">Connected to Master Google Sheets CMS_STATE2 Engine.</p>
+    </div>
+  </footer>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastNotification" class="toast-msg fixed bottom-5 right-5 z-50 bg-brand-navy border border-brand-gold text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm">
+    <i class="fa-solid fa-circle-check text-brand-gold text-lg" id="toastIcon"></i>
+    <span id="toastText">✓ Settings updated successfully!</span>
+  </div>
+
+  <!-- ADMIN AUTH MODAL -->
+  <div id="adminAuthModal" class="fixed inset-0 z-50 bg-brand-navyDark/90 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-brand-navy border border-brand-gold/50 max-w-sm w-full rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-5">
+      <button onclick="closeAdminAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-brand-gold/20 text-brand-gold flex items-center justify-center font-bold shrink-0">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <div>
+          <h3 class="text-base sm:text-lg font-bold text-white">Admin Authentication</h3>
+          <p class="text-[11px] text-slate-400">Unlock Program Matcher CMS &amp; Package Settings</p>
+        </div>
+      </div>
+
+      <form onsubmit="handleAdminLoginSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Admin Master Password *</label>
+          <input type="password" id="adminPassInput" required placeholder="Default password: 123456" class="w-full bg-brand-navyDark border border-brand-borderDark focus:border-brand-gold rounded-xl px-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 outline-none">
+        </div>
+
+        <button type="submit" class="w-full bg-brand-gold hover:bg-brand-goldHover text-brand-navyDark font-black py-3.5 rounded-xl text-xs sm:text-sm transition min-h-[44px]">
+          Unlock Admin Portal CMS
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- DUAL-LANGUAGE MATCHER CMS EDITOR MODAL (CMS_STATE2) -->
+  <div id="manageMatcherModal" class="fixed inset-0 z-50 bg-brand-navyDark/90 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-brand-navy border border-brand-gold/50 max-w-2xl w-full rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-5 max-h-[90vh] overflow-y-auto">
+      <button onclick="closeManageMatcherModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-brand-gold/20 text-brand-gold flex items-center justify-center font-bold shrink-0">
+          <i class="fa-solid fa-language"></i>
+        </div>
+        <div>
+          <h3 class="text-base sm:text-lg font-bold text-white">Dual-Language CMS Editor (CMS_STATE2)</h3>
+          <p class="text-xs text-slate-400">Edit English &amp; Filipino questions, choices, package details &amp; links</p>
+        </div>
+      </div>
+
+      <form onsubmit="handleSaveMatcherCMS(event)" class="space-y-6 text-xs">
+        
+        <!-- Gateway URL Redirect Field -->
+        <div class="bg-brand-navyDark p-4 rounded-2xl border border-brand-borderDark space-y-1.5">
+          <label class="block text-xs font-bold text-brand-gold uppercase tracking-wider font-mono">
+            <i class="fa-solid fa-link mr-1"></i> Paid Trial Gateway External Link URL
+          </label>
+          <input type="url" id="cmsGatewayUrl" required placeholder="https://official-scheduling-dashboard.netlify.app/?mode=paid_trial" class="w-full bg-brand-navy border border-brand-borderDark rounded-xl p-3 text-xs text-white outline-none focus:border-brand-gold">
+        </div>
+
+        <!-- PACKAGE CONFIGURATION (EN + FIL) -->
+        <div class="space-y-4">
+          <span class="text-xs font-bold text-brand-gold uppercase tracking-wider block font-mono">
+            <i class="fa-solid fa-boxes-packing mr-1"></i> 1. Packages Configuration (EN &amp; FIL)
+          </span>
+
+          <!-- Foundations -->
+          <div class="bg-brand-navyDark p-4 rounded-2xl border border-brand-borderDark space-y-3">
+            <span class="font-bold text-white text-xs block">Foundations Package</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Title (EN)</label>
+                <input type="text" id="cmsFoundTitleEN" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Title (FIL)</label>
+                <input type="text" id="cmsFoundTitleFIL" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Description (EN)</label>
+                <textarea id="cmsFoundDescEN" rows="2" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none"></textarea>
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Description (FIL)</label>
+                <textarea id="cmsFoundDescFIL" rows="2" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none"></textarea>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Online Price</label>
+                <input type="text" id="cmsFoundOnlinePrice" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">F2F Price <span class="text-[9px] text-amber-400 italic">(excl. fare)</span></label>
+                <input type="text" id="cmsFoundF2FPrice" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Image Link URL</label>
+                <input type="url" id="cmsFoundImg" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+            </div>
+          </div>
+
+          <!-- Mastery -->
+          <div class="bg-brand-navyDark p-4 rounded-2xl border border-brand-borderDark space-y-3">
+            <span class="font-bold text-white text-xs block">Mastery Package</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Title (EN)</label>
+                <input type="text" id="cmsMastTitleEN" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Title (FIL)</label>
+                <input type="text" id="cmsMastTitleFIL" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Description (EN)</label>
+                <textarea id="cmsMastDescEN" rows="2" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none"></textarea>
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Description (FIL)</label>
+                <textarea id="cmsMastDescFIL" rows="2" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none"></textarea>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Online Price</label>
+                <input type="text" id="cmsMastOnlinePrice" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">F2F Price <span class="text-[9px] text-amber-400 italic">(excl. fare)</span></label>
+                <input type="text" id="cmsMastF2FPrice" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Image Link URL</label>
+                <input type="url" id="cmsMastImg" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+            </div>
+          </div>
+
+          <!-- Scholar's -->
+          <div class="bg-brand-navyDark p-4 rounded-2xl border border-brand-borderDark space-y-3">
+            <span class="font-bold text-white text-xs block">Scholar's Package</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Title (EN)</label>
+                <input type="text" id="cmsScholTitleEN" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Title (FIL)</label>
+                <input type="text" id="cmsScholTitleFIL" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Description (EN)</label>
+                <textarea id="cmsScholDescEN" rows="2" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none"></textarea>
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Description (FIL)</label>
+                <textarea id="cmsScholDescFIL" rows="2" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none"></textarea>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Online Price</label>
+                <input type="text" id="cmsScholOnlinePrice" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">F2F Price <span class="text-[9px] text-amber-400 italic">(excl. fare)</span></label>
+                <input type="text" id="cmsScholF2FPrice" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Image Link URL</label>
+                <input type="url" id="cmsScholImg" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QUESTIONS & OPTIONS EDITORS (EN & FIL) -->
+        <div class="space-y-4">
+          <span class="text-xs font-bold text-brand-gold uppercase tracking-wider block font-mono">
+            <i class="fa-solid fa-circle-question mr-1"></i> 2. Questions &amp; Options Text (EN &amp; FIL)
+          </span>
+          <div id="cmsQuestionsEditorContainer" class="space-y-3">
+            <!-- Dynamically rendered question fields -->
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-brand-gold hover:bg-brand-goldHover text-brand-navyDark font-black py-3.5 rounded-xl transition shadow-lg min-h-[44px]">
+          Save Matcher Settings &amp; Sync to CMS_STATE2
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- CHANGE PASSWORD MODAL -->
+  <div id="passwordModal" class="fixed inset-0 z-50 bg-brand-navyDark/90 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-brand-navy border border-brand-gold/50 max-w-sm w-full rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-4">
+      <button onclick="closePasswordModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-brand-gold/20 text-brand-gold flex items-center justify-center font-bold">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Change Admin Password</h3>
+          <p class="text-[11px] text-slate-400">Security verification required</p>
+        </div>
+      </div>
+
+      <form onsubmit="handleChangePasswordSubmit(event)" class="space-y-4">
+        <div class="p-3 bg-brand-navyDark rounded-xl border border-brand-borderDark space-y-1 text-xs">
+          <span class="text-[10px] text-brand-gold font-bold uppercase tracking-wider block">Security Question:</span>
+          <p class="font-semibold text-white text-xs">When was VectorEd Academy founded?</p>
+          <p class="text-[10px] text-slate-400 italic">(Enter current password OR answer e.g. "Jan 2025")</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Current Password or Security Answer *</label>
+          <input type="text" id="secAnsInput" required placeholder="Enter current password or answer" class="w-full bg-brand-navyDark border border-brand-borderDark focus:border-brand-gold rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">New Master Password *</label>
+          <input type="password" id="newPassInput" required placeholder="Set new master password" class="w-full bg-brand-navyDark border border-brand-borderDark focus:border-brand-gold rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none">
+        </div>
+
+        <button type="submit" class="w-full bg-brand-gold hover:bg-brand-goldHover text-brand-navyDark font-black py-3.5 rounded-xl text-xs transition min-h-[44px]">
+          Verify &amp; Update Password Globally
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC ENGINE -->
+  <script>
+    // Master System Endpoint & State
+    const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzRFXmtKHCPH9P-CEAUQuIAmkWLeoj76mMnnCjLL7ILJNxgO2HT2hmeeoMSYEqkdiIR/exec";
+
+    // Master Links
+    let gatewayBaseUrl = "https://official-scheduling-dashboard.netlify.app/?mode=paid_trial";
+    const FREE_TRIAL_LINK = "https://vectored-academy.netlify.app/#book-trial";
+
+    // Admin Auth State & Master Password
+    let isAdminLoggedIn = false;
+    let masterPassword = localStorage.getItem('ve_master_password') || '123456';
+
+    // Active UI Language ('en' or 'fil')
+    let currentLang = 'en';
+
+    // UI Translation Strings
+    const UI_I18N = {
+      en: {
+        badge: "Smart Program Matcher",
+        title: "Find the Right Package for you",
+        subheadline: "Answer 5 quick diagnostic questions to evaluate your academic needs and unlock your tailored STEM tutoring program.",
+        mainHeader: "1. Diagnostic Assessment Questions",
+        subHeaderDesc: "Complete Q1 to Q5 to determine your optimal package match.",
+        btnPrev: "Previous",
+        btnNext: "Next Question",
+        resTitleBadge: "YOUR RECOMMENDED PROGRAM MATCH",
+        answersLabel: "Answers (Q1-Q5):",
+        primaryMatch: "PRIMARY MATCH",
+        lblOnlineRate: "Online Tutoring Rate",
+        lblF2FRate: "Face-to-Face Rate",
+        exclFare: "(excluding fare)",
+        btnFreeTrial: "Claim Free 20-Min Trial",
+        btnPaidTrial: "Book Paid 1-2 Hr Trial Class",
+        btnRetake: "Retake Diagnostic Assessment"
+      },
+      fil: {
+        badge: "Pagsusuring Pang-Akademiko",
+        title: "Hanapin ang Tamang Package para sa Iyo",
+        subheadline: "Sagutan ang 5 mabilis na tanong upang malaman ang pinaka-angkop na STEM tutoring program para sa iyo.",
+        mainHeader: "1. Mga Tanong sa Diagnostic Assessment",
+        subHeaderDesc: "Sagutan ang Q1 hanggang Q5 para sa perpektong struktura ng tutoring.",
+        btnPrev: "Bumalik",
+        btnNext: "Susunod na Tanong",
+        resTitleBadge: "ANG INIREREKOMENDANG PROGRAMA SA IYO",
+        answersLabel: "Mga Sagot (Q1-Q5):",
+        primaryMatch: "PINAKAMATAS NA MATCH",
+        lblOnlineRate: "Halaga ng Online Tutoring",
+        lblF2FRate: "Halaga ng Face-to-Face",
+        exclFare: "(hindi kasama ang pamasahe)",
+        btnFreeTrial: "Kumuha ng Libreng 20-Min Trial",
+        btnPaidTrial: "Mag-book ng Paid 1-2 Hr Trial Class",
+        btnRetake: "Ulitin ang Diagnostic Assessment"
+      }
+    };
+
+    // Master Packages Configuration Data
+    let matcherPackages = {
+      foundations: {
+        id: "foundations",
+        title: { en: "Foundations Package (4 Hours)", fil: "Foundations Package (4 Oras)" },
+        desc: {
+          en: "Ideal for students needing quick brush-ups on specific topics or concept clarification with targeted guidance.",
+          fil: "Perpekto para sa mga estudyanteng kailangan ng mabilis na rebyu sa partikular na paksa o paglilinaw sa mga aralin."
+        },
+        priceOnline: "₱2,500",
+        priceF2F: "₱3,500",
+        hoursOnline: "4 Hours Included",
+        hoursF2F: "4 Hours F2F (excluding fare)",
+        image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=600&q=80"
+      },
+      mastery: {
+        id: "mastery",
+        title: { en: "Mastery Package (7 Hours)", fil: "Mastery Package (7 Oras)" },
+        desc: {
+          en: "Designed for students struggling with several topics or needing structured guided practice and problem-solving techniques.",
+          fil: "Disenyo para sa mga estudyanteng nahihirapan sa iba't ibang paksa o kailangan ng gabay sa paglutas ng mga problema."
+        },
+        priceOnline: "₱5,000",
+        priceF2F: "₱6,000",
+        hoursOnline: "7 Hours Included",
+        hoursF2F: "7 Hours F2F (excluding fare)",
+        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80"
+      },
+      scholars: {
+        id: "scholars",
+        title: { en: "Scholar's Package (10 Hours)", fil: "Scholar's Package (10 Oras)" },
+        desc: {
+          en: "Comprehensive, intensive academic support for students looking to rebuild core fundamentals and build peak performance.",
+          fil: "Komprehensibo at masinsinang tulong upang patibayin ang pundasyon sa STEM at maabot ang pinakamataas na grado."
+        },
+        priceOnline: "₱9,000",
+        priceF2F: "₱10,000",
+        hoursOnline: "10 Hours Included",
+        hoursF2F: "9 Hours F2F + 1 Hr Online (excluding fare)",
+        image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=600&q=80"
+      }
+    };
+
+    // Master 5 Diagnostic Questions Data
+    let matcherQuestions = [
+      {
+        id: "q1",
+        num: "Q1",
+        text: {
+          en: "What is currently happening with your studies?",
+          fil: "Ano ang kasalukuyang sitwasyon ng iyong pag-aaral?"
+        },
+        options: [
+          { key: "A", label: { en: "I only struggle with a specific topic or concept.", fil: "Nahihirapan lang ako sa isang partikular na paksa." }, target: "foundations" },
+          { key: "B", label: { en: "I struggle with several topics.", fil: "Nahihirapan ako sa maraming paksa." }, target: "mastery" },
+          { key: "C", label: { en: "I have difficulty understanding the fundamentals.", fil: "Nahihirapan akong intindihin ang mga pangunahing pundasyon." }, target: "scholars" },
+          { key: "D", label: { en: "I understand the lessons, but I struggle to solve problems independently.", fil: "Naiintindihan ko ang aralin, pero nahihirapan akong magsagot nang mag-isa." }, target: "mastery" }
+        ]
+      },
+      {
+        id: "q2",
+        num: "Q2",
+        text: {
+          en: "What usually happens when you encounter a difficult problem?",
+          fil: "Ano ang karaniwang nangyayari kapag nakatagpo ka ng mahirap na problema?"
+        },
+        options: [
+          { key: "A", label: { en: "I understand the concept but occasionally need clarification or techniques.", fil: "Naiintindihan ko ang konsepto pero kailangan ko ng kaunting klaripikasyon o diskarte." }, target: "foundations" },
+          { key: "B", label: { en: "I know the formulas, but I struggle with applying them correctly.", fil: "Alam ko ang mga formula, pero nahihirapan akong gamitin ang mga ito nang tama." }, target: "mastery" },
+          { key: "C", label: { en: "I often do not know where to start because my fundamentals are weak.", fil: "Madalas hindi ko alam kung saan magsisimula dahil mahina ang aking pundasyon." }, target: "scholars" },
+          { key: "D", label: { en: "I can start solving, but I get stuck with complicated or unfamiliar problems.", fil: "Nakasimula ako magsagot, pero nababara sa mga komplikadong problema." }, target: "mastery" }
+        ]
+      },
+      {
+        id: "q3",
+        num: "Q3",
+        text: {
+          en: "What level of tutoring support do you think you need?",
+          fil: "Anong antas ng tulong sa tutoring ang sa tingin mo ay kailangan mo?"
+        },
+        options: [
+          { key: "A", label: { en: "A little guidance or a quick refresher.", fil: "Kaunting gabay o mabilisang pag-rebyu lang." }, target: "foundations" },
+          { key: "B", label: { en: "Help with a few topics, including guided practice.", fil: "Tulong sa ilang paksa, kasama ang guided practice." }, target: "split" },
+          { key: "C", label: { en: "A structured review of several concepts and problem-solving techniques.", fil: "Sistemadong rebyu sa maraming konsepto at mga diskarte sa pagsagot." }, target: "mastery" },
+          { key: "D", label: { en: "Intensive academic support because I have significant learning gaps.", fil: "Masinsinang tulong dahil marami akong kulang sa aking natutunan." }, target: "scholars" }
+        ]
+      },
+      {
+        id: "q4",
+        num: "Q4",
+        text: {
+          en: "What is your primary learning objective?",
+          fil: "Ano ang iyong pangunahing layunin sa pag-aaral?"
+        },
+        options: [
+          { key: "A", label: { en: "Understand difficult lessons & catch up", fil: "Maintindihan ang mahihirap na aralin at makahabol" } },
+          { key: "B", label: { en: "Strengthen fundamentals & problem-solving", fil: "Patibayin ang pundasyon at problem-solving skills" } },
+          { key: "C", label: { en: "Prepare for upcoming exam or entrance test", fil: "Maghanda para sa darating na pagsusulit" } },
+          { key: "D", label: { en: "Build consistent long-term academic performance", fil: "Bumuo ng tuloy-tuloy at mataas na grado" } }
+        ]
+      },
+      {
+        id: "q5",
+        num: "Q5",
+        text: {
+          en: "What tutoring arrangement would you prefer?",
+          fil: "Anong klaseng tutoring arrangement ang mas gusto mo?"
+        },
+        options: [
+          { key: "A", label: { en: "Online Tutoring (Via Zoom/Meet)", fil: "Online Tutoring (Sa Zoom/Meet)" } },
+          { key: "B", label: { en: "Face-to-Face Tutoring (Excluding fare)", fil: "Face-to-Face Tutoring (Hindi kasama ang pamasahe)" } },
+          { key: "C", label: { en: "Either arrangement works for me", fil: "Kahit alin sa dalawa ay puwede sa akin" } },
+          { key: "D", label: { en: "Discuss available options first", fil: "Gusto ko munang pag-usapan ang mga opsyon" } }
+        ]
+      }
+    ];
+
+    // Quiz State Variables
+    let currentQuizStep = 0;
+    let userQuizAnswers = [null, null, null, null, null];
+    let recommendedPackageResult = null;
+
+    // Helper: Toast Notification Display
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toastNotification');
+      const text = document.getElementById('toastText');
+      const icon = document.getElementById('toastIcon');
+      if (text) text.textContent = msg;
+      if (icon) {
+        icon.className = isError 
+          ? "fa-solid fa-triangle-exclamation text-brand-accentRed text-lg" 
+          : "fa-solid fa-circle-check text-brand-gold text-lg";
+      }
+      if (toast) {
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 4000);
+      }
+    }
+
+    // Modal Helpers
+    function showModal(id) {
+      const m = document.getElementById(id);
+      if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+    }
+    function closeModal(id) {
+      const m = document.getElementById(id);
+      if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+    }
+
+    function openAdminAuthModal() { showModal('adminAuthModal'); }
+    function closeAdminAuthModal() { closeModal('adminAuthModal'); }
+    function openPasswordModal() { showModal('passwordModal'); }
+    function closePasswordModal() { closeModal('passwordModal'); }
+    function openManageMatcherModal() { populateMatcherCMSModal(); showModal('manageMatcherModal'); }
+    function closeManageMatcherModal() { closeModal('manageMatcherModal'); }
+
+    // Admin Authentication Handlers
+    function handleAdminLoginSubmit(e) {
+      e.preventDefault();
+      const inputPass = document.getElementById('adminPassInput').value;
+      if (inputPass === masterPassword) {
+        isAdminLoggedIn = true;
+        document.body.classList.add('admin-mode-active');
+        document.getElementById('adminToolbar').classList.remove('hidden');
+        closeAdminAuthModal();
+        enableInlineTextEditing(true);
+        showToast("✓ Admin Portal Unlocked!");
+      } else {
+        showToast("❌ Incorrect Master Password.", true);
+      }
+    }
+
+    function logoutAdmin() {
+      isAdminLoggedIn = false;
+      document.body.classList.remove('admin-mode-active');
+      document.getElementById('adminToolbar').classList.add('hidden');
+      enableInlineTextEditing(false);
+      showToast("Logged out of Admin Portal.");
+    }
+
+    function handleChangePasswordSubmit(e) {
+      e.preventDefault();
+      const ansInput = document.getElementById('secAnsInput').value.trim();
+      const ansLower = ansInput.toLowerCase();
+      const newPass = document.getElementById('newPassInput').value.trim();
+
+      const isValid = (ansInput === masterPassword) || 
+                      (ansLower.includes("jan") || ansLower.includes("2025") || ansLower.includes("january"));
+
+      if (isValid) {
+        if (newPass.length < 4) {
+          showToast("⚠️ Password must be at least 4 characters.", true);
+          return;
+        }
+        masterPassword = newPass;
+        localStorage.setItem('ve_master_password', masterPassword);
+        saveAllPortalChanges();
+        closePasswordModal();
+        document.getElementById('secAnsInput').value = '';
+        document.getElementById('newPassInput').value = '';
+        showToast("✓ Master password updated!");
+      } else {
+        showToast("❌ Security answer or current password incorrect.", true);
+      }
+    }
+
+    // Inline Text Editing Engine
+    const PORTAL_TEXT_IDS = ['txtBadge', 'txtTitle', 'txtSubheadline'];
+
+    function enableInlineTextEditing(enable) {
+      PORTAL_TEXT_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.contentEditable = enable ? "true" : "false"; }
+      });
+    }
+
+    function loadSavedTextElements() {
+      const saved = JSON.parse(localStorage.getItem('ve_portal_text'));
+      if (saved) {
+        Object.keys(saved).forEach(id => {
+          const el = document.getElementById(id);
+          if (el && saved[id] !== undefined) el.innerHTML = saved[id];
+        });
+      }
+    }
+
+    // Language Toggle Switcher Engine
+    function setLanguage(lang) {
+      currentLang = lang;
+      
+      const btnEN = document.getElementById('langBtnEN');
+      const btnFIL = document.getElementById('langBtnFIL');
+      if (btnEN && btnFIL) {
+        if (lang === 'en') {
+          btnEN.className = "px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all duration-200 bg-brand-gold text-brand-navyDark shadow";
+          btnFIL.className = "px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all duration-200 text-slate-400 hover:text-white";
+        } else {
+          btnFIL.className = "px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all duration-200 bg-brand-gold text-brand-navyDark shadow";
+          btnEN.className = "px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all duration-200 text-slate-400 hover:text-white";
+        }
+      }
+
+      // Update Header & General UI Labels
+      const t = UI_I18N[lang];
+      document.getElementById('txtBadge').textContent = t.badge;
+      document.getElementById('txtTitle').textContent = t.title;
+      document.getElementById('txtSubheadline').textContent = t.subheadline;
+      document.getElementById('txtMatcherMainHeader').textContent = t.mainHeader;
+      document.getElementById('txtSubHeaderDesc').textContent = t.subHeaderDesc;
+      document.getElementById('txtBtnPrevLabel').textContent = t.btnPrev;
+      document.getElementById('txtBtnNextLabel').textContent = t.btnNext;
+      document.getElementById('txtResTitleBadge').textContent = t.resTitleBadge;
+      document.getElementById('txtAnswersLabel').textContent = t.answersLabel;
+      document.getElementById('resPkgBadge').textContent = t.primaryMatch;
+      document.getElementById('lblOnlineTutoringRate').innerHTML = `<i class="fa-solid fa-laptop text-brand-gold mr-1"></i> ${t.lblOnlineRate}`;
+      document.getElementById('lblF2FTutoringRate').innerHTML = `<i class="fa-solid fa-users text-brand-gold mr-1"></i> ${t.lblF2FRate}`;
+      document.getElementById('txtBtnFreeTrial').textContent = t.btnFreeTrial;
+      document.getElementById('txtBtnPaidTrial').textContent = t.btnPaidTrial;
+      document.getElementById('txtBtnRetake').textContent = t.btnRetake;
+
+      // Re-render active question step or result display
+      renderQuizStep();
+      if (recommendedPackageResult) {
+        displayMatcherResults(recommendedPackageResult);
+      }
+    }
+
+    // Cloud & Local CMS_STATE2 Synchronization Engine
+    async function fetchCloudCMSState() {
+      if (!APP_SCRIPT_URL) return;
+      try {
+        const res = await fetch(`${APP_SCRIPT_URL}?type=cms_state2`);
+        const data = await res.json();
+        if (data && typeof data === 'object') {
+          if (data.gatewayBaseUrl) {
+            gatewayBaseUrl = data.gatewayBaseUrl;
+          }
+          if (data.matcherPackages) {
+            matcherPackages = data.matcherPackages;
+            localStorage.setItem('ve_matcher_packages', JSON.stringify(matcherPackages));
+          }
+          if (data.matcherQuestions) {
+            matcherQuestions = data.matcherQuestions;
+            localStorage.setItem('ve_matcher_questions', JSON.stringify(matcherQuestions));
+          }
+          renderQuizStep();
+        }
+      } catch (err) {
+        console.warn("Could not fetch CMS_STATE2 cloud state, using local cache:", err);
+      }
+    }
+
+    function saveAllPortalChanges() {
+      const textMap = {};
+      PORTAL_TEXT_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) textMap[id] = el.innerHTML;
+      });
+
+      localStorage.setItem('ve_portal_text', JSON.stringify(textMap));
+      localStorage.setItem('ve_matcher_packages', JSON.stringify(matcherPackages));
+      localStorage.setItem('ve_matcher_questions', JSON.stringify(matcherQuestions));
+      localStorage.setItem('ve_master_password', masterPassword);
+
+      showToast("✓ Local state saved. Syncing to CMS_STATE2...");
+
+      if (APP_SCRIPT_URL) {
+        fetch(APP_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            formType: 'cms_state2',
+            password: masterPassword,
+            cmsState2: {
+              gatewayBaseUrl: gatewayBaseUrl,
+              matcherPackages: matcherPackages,
+              matcherQuestions: matcherQuestions,
+              ve_portal_text: textMap,
+              ve_master_password: masterPassword
+            }
+          })
+        }).then(() => {
+          showToast("✓ All settings synced to Google Sheets CMS_STATE2!");
+        }).catch(err => {
+          console.warn("Cloud sync dispatch warning:", err);
+        });
+      }
+    }
+
+    // Diagnostic Quiz Rendering Engine
+    function renderQuizStep() {
+      const q = matcherQuestions[currentQuizStep];
+      if (!q) return;
+
+      const qNumBadge = document.getElementById('questionNumBadge');
+      const qTextDisplay = document.getElementById('questionTextDisplay');
+      const stepLabel = document.getElementById('quizStepLabel');
+      const percentLabel = document.getElementById('quizPercentLabel');
+      const progressBar = document.getElementById('quizProgressBar');
+
+      if (qNumBadge) qNumBadge.textContent = q.num;
+      if (qTextDisplay) qTextDisplay.textContent = q.text[currentLang] || q.text.en;
+
+      const stepNumber = currentQuizStep + 1;
+      const pct = Math.round((stepNumber / 5) * 100);
+      
+      const isFil = (currentLang === 'fil');
+      if (stepLabel) stepLabel.textContent = isFil ? `Pagsusuri (Tanong ${stepNumber} sa 5)` : `Diagnostic Assessment (Question ${stepNumber} of 5)`;
+      if (percentLabel) percentLabel.textContent = `${pct}% ${isFil ? 'Nakatapos' : 'Completed'}`;
+      if (progressBar) progressBar.style.width = `${pct}%`;
+
+      // Render Options Grid
+      const container = document.getElementById('quizOptionsContainer');
+      if (!container) return;
+
+      const selectedKey = userQuizAnswers[currentQuizStep];
+
+      container.innerHTML = q.options.map(opt => {
+        const isSelected = (selectedKey === opt.key);
+        const optText = opt.label[currentLang] || opt.label.en;
+
+        if (isSelected) {
+          return `
+            <button type="button" onclick="selectQuizOption('${opt.key}')" class="option-pill-btn w-full p-4 rounded-2xl bg-brand-gold text-brand-navyDark border-2 border-brand-gold font-bold text-xs sm:text-sm text-left flex items-start gap-3 shadow-lg min-h-[52px]">
+              <span class="w-6 h-6 rounded-xl bg-brand-navyDark text-brand-gold flex items-center justify-center font-mono font-extrabold text-xs shrink-0 mt-0.5">
+                ${opt.key}
+              </span>
+              <span class="flex-1 leading-snug">${optText}</span>
+              <i class="fa-solid fa-circle-check text-brand-navyDark text-base shrink-0 mt-1"></i>
+            </button>
+          `;
+        }
+
+        return `
+          <button type="button" onclick="selectQuizOption('${opt.key}')" class="option-pill-btn w-full p-4 rounded-2xl bg-brand-navyDark/90 hover:bg-slate-800 text-slate-200 border border-brand-borderDark hover:border-brand-gold font-semibold text-xs sm:text-sm text-left flex items-start gap-3 transition min-h-[52px]">
+            <span class="w-6 h-6 rounded-xl bg-brand-navy text-slate-300 font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-brand-borderDark">
+              ${opt.key}
+            </span>
+            <span class="flex-1 leading-snug">${optText}</span>
+          </button>
+        `;
+      }).join('');
+
+      // Buttons State
+      const btnPrev = document.getElementById('btnQuizPrev');
+      const btnNext = document.getElementById('btnQuizNext');
+
+      if (btnPrev) btnPrev.disabled = (currentQuizStep === 0);
+      if (btnNext) {
+        btnNext.disabled = (selectedKey === null);
+        const nextLabel = document.getElementById('txtBtnNextLabel');
+        if (nextLabel) {
+          if (currentQuizStep === 4) {
+            nextLabel.textContent = isFil ? "Tingnan ang Rekomendasyon" : "See Recommended Package";
+          } else {
+            nextLabel.textContent = UI_I18N[currentLang].btnNext;
+          }
+        }
+      }
+    }
+
+    function selectQuizOption(key) {
+      userQuizAnswers[currentQuizStep] = key;
+      renderQuizStep();
+    }
+
+    function navigateQuizStep(dir) {
+      const nextStep = currentQuizStep + dir;
+      if (nextStep >= 0 && nextStep < 5) {
+        currentQuizStep = nextStep;
+        renderQuizStep();
+      } else if (nextStep === 5) {
+        calculateAndShowPackageResult();
+      }
+    }
+
+    // Scoring Algorithm & Result Handler
+    function calculateAndShowPackageResult() {
+      let scores = { foundations: 0, mastery: 0, scholars: 0 };
+
+      // Q1 (40 pts)
+      const q1Ans = userQuizAnswers[0];
+      if (q1Ans === 'A') scores.foundations += 40;
+      else if (q1Ans === 'B' || q1Ans === 'D') scores.mastery += 40;
+      else if (q1Ans === 'C') scores.scholars += 40;
+
+      // Q2 (35 pts)
+      const q2Ans = userQuizAnswers[1];
+      if (q2Ans === 'A') scores.foundations += 35;
+      else if (q2Ans === 'B' || q2Ans === 'D') scores.mastery += 35;
+      else if (q2Ans === 'C') scores.scholars += 35;
+
+      // Q3 (25 pts)
+      const q3Ans = userQuizAnswers[2];
+      if (q3Ans === 'A') scores.foundations += 25;
+      else if (q3Ans === 'B') { scores.foundations += 15; scores.mastery += 10; }
+      else if (q3Ans === 'C') scores.mastery += 25;
+      else if (q3Ans === 'D') scores.scholars += 25;
+
+      // Determine Package
+      let topPackage = 'mastery';
+      if (scores.foundations > scores.mastery && scores.foundations > scores.scholars) {
+        topPackage = 'foundations';
+      } else if (scores.scholars > scores.mastery && scores.scholars > scores.foundations) {
+        topPackage = 'scholars';
+      }
+
+      recommendedPackageResult = matcherPackages[topPackage];
+      displayMatcherResults(recommendedPackageResult);
+    }
+
+    function displayMatcherResults(pkg) {
+      document.getElementById('matcherQuizContainer').classList.add('hidden');
+      document.getElementById('matcherResultContainer').classList.remove('hidden');
+
+      const shorthandStr = userQuizAnswers.join(', ');
+      document.getElementById('resShorthandAnswers').textContent = shorthandStr;
+
+      document.getElementById('resPkgTitle').textContent = pkg.title[currentLang] || pkg.title.en;
+      document.getElementById('resPkgDesc').textContent = pkg.desc[currentLang] || pkg.desc.en;
+      document.getElementById('resOnlinePrice').textContent = pkg.priceOnline;
+      document.getElementById('resOnlineHours').textContent = pkg.hoursOnline;
+      document.getElementById('resF2FPrice').textContent = pkg.priceF2F;
+      document.getElementById('resF2FHours').innerHTML = `${pkg.hoursF2F}`;
+
+      if (pkg.image) {
+        document.getElementById('resPkgImage').src = pkg.image;
+      }
+    }
+
+    function retakeDiagnosticQuiz() {
+      currentQuizStep = 0;
+      userQuizAnswers = [null, null, null, null, null];
+      recommendedPackageResult = null;
+
+      document.getElementById('matcherResultContainer').classList.add('hidden');
+      document.getElementById('matcherQuizContainer').classList.remove('hidden');
+      renderQuizStep();
+    }
+
+    // ACTION PATH 1: Free 20-Min Trial Direct Redirect
+    function triggerActionPathFreeTrial() {
+      showToast("Redirecting to Free Trial Class Registration...");
+      setTimeout(() => {
+        window.open(FREE_TRIAL_LINK, "_blank");
+      }, 300);
+    }
+
+    // ACTION PATH 2: Paid 1-2 Hr Trial Class Direct Link
+    function triggerActionPathPaidTrial() {
+      const shorthandStr = userQuizAnswers.join(', ');
+      const pkgName = recommendedPackageResult ? (recommendedPackageResult.title.en.split('(')[0].trim()) : "Mastery Package";
+
+      let targetUrl = gatewayBaseUrl;
+      const separator = targetUrl.includes('?') ? '&' : '?';
+      targetUrl += `${separator}package=${encodeURIComponent(pkgName)}&answers=${encodeURIComponent(shorthandStr)}`;
+
+      showToast("Launching Paid Trial Scheduling Gateway...");
+      setTimeout(() => {
+        window.open(targetUrl, "_blank");
+      }, 300);
+    }
+
+    // Admin CMS Editors Populator & Saver (CMS_STATE2)
+    function populateMatcherCMSModal() {
+      document.getElementById('cmsGatewayUrl').value = gatewayBaseUrl;
+
+      // Packages
+      document.getElementById('cmsFoundTitleEN').value = matcherPackages.foundations.title.en;
+      document.getElementById('cmsFoundTitleFIL').value = matcherPackages.foundations.title.fil;
+      document.getElementById('cmsFoundDescEN').value = matcherPackages.foundations.desc.en;
+      document.getElementById('cmsFoundDescFIL').value = matcherPackages.foundations.desc.fil;
+      document.getElementById('cmsFoundOnlinePrice').value = matcherPackages.foundations.priceOnline;
+      document.getElementById('cmsFoundF2FPrice').value = matcherPackages.foundations.priceF2F;
+      document.getElementById('cmsFoundImg').value = matcherPackages.foundations.image;
+
+      document.getElementById('cmsMastTitleEN').value = matcherPackages.mastery.title.en;
+      document.getElementById('cmsMastTitleFIL').value = matcherPackages.mastery.title.fil;
+      document.getElementById('cmsMastDescEN').value = matcherPackages.mastery.desc.en;
+      document.getElementById('cmsMastDescFIL').value = matcherPackages.mastery.desc.fil;
+      document.getElementById('cmsMastOnlinePrice').value = matcherPackages.mastery.priceOnline;
+      document.getElementById('cmsMastF2FPrice').value = matcherPackages.mastery.priceF2F;
+      document.getElementById('cmsMastImg').value = matcherPackages.mastery.image;
+
+      document.getElementById('cmsScholTitleEN').value = matcherPackages.scholars.title.en;
+      document.getElementById('cmsScholTitleFIL').value = matcherPackages.scholars.title.fil;
+      document.getElementById('cmsScholDescEN').value = matcherPackages.scholars.desc.en;
+      document.getElementById('cmsScholDescFIL').value = matcherPackages.scholars.desc.fil;
+      document.getElementById('cmsScholOnlinePrice').value = matcherPackages.scholars.priceOnline;
+      document.getElementById('cmsScholF2FPrice').value = matcherPackages.scholars.priceF2F;
+      document.getElementById('cmsScholImg').value = matcherPackages.scholars.image;
+
+      // Questions
+      const qContainer = document.getElementById('cmsQuestionsEditorContainer');
+      if (!qContainer) return;
+
+      qContainer.innerHTML = matcherQuestions.map((q, idx) => `
+        <div class="bg-brand-navyDark p-3.5 rounded-2xl border border-brand-borderDark space-y-2">
+          <span class="font-bold text-brand-gold text-xs block">${q.num}: Question Text (EN &amp; FIL)</span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-400 text-[10px] mb-0.5">English Question</label>
+              <input type="text" id="cmsQTextEN_${idx}" value="${q.text.en.replace(/"/g, '&quot;')}" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+            </div>
+            <div>
+              <label class="block text-slate-400 text-[10px] mb-0.5">Filipino Question</label>
+              <input type="text" id="cmsQTextFIL_${idx}" value="${q.text.fil.replace(/"/g, '&quot;')}" class="w-full bg-brand-navy border border-brand-borderDark rounded-lg p-2 text-white outline-none">
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function handleSaveMatcherCMS(e) {
+      e.preventDefault();
+
+      gatewayBaseUrl = document.getElementById('cmsGatewayUrl').value.trim();
+
+      // Read Packages
+      matcherPackages.foundations.title.en = document.getElementById('cmsFoundTitleEN').value;
+      matcherPackages.foundations.title.fil = document.getElementById('cmsFoundTitleFIL').value;
+      matcherPackages.foundations.desc.en = document.getElementById('cmsFoundDescEN').value;
+      matcherPackages.foundations.desc.fil = document.getElementById('cmsFoundDescFIL').value;
+      matcherPackages.foundations.priceOnline = document.getElementById('cmsFoundOnlinePrice').value;
+      matcherPackages.foundations.priceF2F = document.getElementById('cmsFoundF2FPrice').value;
+      matcherPackages.foundations.image = document.getElementById('cmsFoundImg').value;
+
+      matcherPackages.mastery.title.en = document.getElementById('cmsMastTitleEN').value;
+      matcherPackages.mastery.title.fil = document.getElementById('cmsMastTitleFIL').value;
+      matcherPackages.mastery.desc.en = document.getElementById('cmsMastDescEN').value;
+      matcherPackages.mastery.desc.fil = document.getElementById('cmsMastDescFIL').value;
+      matcherPackages.mastery.priceOnline = document.getElementById('cmsMastOnlinePrice').value;
+      matcherPackages.mastery.priceF2F = document.getElementById('cmsMastF2FPrice').value;
+      matcherPackages.mastery.image = document.getElementById('cmsMastImg').value;
+
+      matcherPackages.scholars.title.en = document.getElementById('cmsScholTitleEN').value;
+      matcherPackages.scholars.title.fil = document.getElementById('cmsScholTitleFIL').value;
+      matcherPackages.scholars.desc.en = document.getElementById('cmsScholDescEN').value;
+      matcherPackages.scholars.desc.fil = document.getElementById('cmsScholDescFIL').value;
+      matcherPackages.scholars.priceOnline = document.getElementById('cmsScholOnlinePrice').value;
+      matcherPackages.scholars.priceF2F = document.getElementById('cmsScholF2FPrice').value;
+      matcherPackages.scholars.image = document.getElementById('cmsScholImg').value;
+
+      // Read Questions
+      matcherQuestions.forEach((q, idx) => {
+        const enInput = document.getElementById(`cmsQTextEN_${idx}`);
+        const filInput = document.getElementById(`cmsQTextFIL_${idx}`);
+        if (enInput) q.text.en = enInput.value;
+        if (filInput) q.text.fil = filInput.value;
+      });
+
+      saveAllPortalChanges();
+      closeManageMatcherModal();
+      renderQuizStep();
+      showToast("✓ Dual-language CMS_STATE2 settings saved & synchronized!");
+    }
+
+    // Initializer
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSavedTextElements();
+
+      const cachedPkgs = localStorage.getItem('ve_matcher_packages');
+      if (cachedPkgs) matcherPackages = JSON.parse(cachedPkgs);
+
+      const cachedQs = localStorage.getItem('ve_matcher_questions');
+      if (cachedQs) matcherQuestions = JSON.parse(cachedQs);
+
+      renderQuizStep();
+      fetchCloudCMSState();
+    });
+  </script>
+</body>
+</html>
