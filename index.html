@@ -140,7 +140,7 @@
         <i class="fa-solid fa-floppy-disk"></i> Save
       </button>
 
-      <button onclick="logoutAdmin()" class="bg-red-700 hover:bg-red-800 text-white px-2 py-1 rounded-lg transition text-[11px]" title="Logout">
+      <button onclick="logoutAdmin()" class="bg-red-700 hover:bg-red-800 text-white px-2.5 py-1 rounded-lg transition text-[11px]" title="Logout">
         <i class="fa-solid fa-right-from-bracket"></i>
       </button>
     </div>
@@ -1146,11 +1146,62 @@
       renderQuizStep();
     }
 
-    // ACTION PATH 1: Free 20-Min Trial Direct Redirect
+    // ACTION PATH 1: Free 20-Min Trial Direct Redirect (STAGE 1 REPAIR)
     function triggerActionPathFreeTrial() {
+      // 1. Validation: Verify recommended package exists
+      if (!recommendedPackageResult || !recommendedPackageResult.title) {
+        showToast("⚠️ Please complete the diagnostic assessment first.", true);
+        return;
+      }
+
+      // 2. Validation: Verify exactly 5 answers exist
+      if (!Array.isArray(userQuizAnswers) || userQuizAnswers.length !== 5) {
+        showToast("⚠️ All 5 diagnostic questions must be completed before booking.", true);
+        return;
+      }
+
+      // 3. Validation: Verify each answer is a valid letter (A, B, C, or D)
+      const validLetters = ['A', 'B', 'C', 'D'];
+      for (let i = 0; i < 5; i++) {
+        const ans = userQuizAnswers[i];
+        if (!ans || typeof ans !== 'string' || !validLetters.includes(ans.trim().toUpperCase())) {
+          showToast(`⚠️ Question ${i + 1} has an invalid or missing answer.`, true);
+          return;
+        }
+      }
+
+      // 4. Obtain package name (e.g. "Mastery Package" or "Foundations Package")
+      const rawPkgTitle = recommendedPackageResult.title.en || recommendedPackageResult.title;
+      const pkgName = rawPkgTitle.split('(')[0].trim();
+
+      // 5. Obtain the student's 5 answers preserving Q1-Q5 order as letters separated by commas
+      const shorthandStr = userQuizAnswers.map(a => a.trim().toUpperCase()).join(', ');
+
+      // 6. Construct destination URL placing query parameters BEFORE the #book-trial fragment
+      // Base format: https://vectored-academy.netlify.app/?package=...&answers=...#book-trial
+      let baseUrl = "https://vectored-academy.netlify.app/";
+      let fragment = "book-trial";
+
+      if (typeof FREE_TRIAL_LINK === 'string' && FREE_TRIAL_LINK.trim().length > 0) {
+        if (FREE_TRIAL_LINK.includes('#')) {
+          const parts = FREE_TRIAL_LINK.split('#');
+          baseUrl = parts[0];
+          fragment = parts[1] || "book-trial";
+        } else {
+          baseUrl = FREE_TRIAL_LINK;
+        }
+      }
+
+      if (!baseUrl.endsWith('/') && !baseUrl.includes('?')) {
+        baseUrl += '/';
+      }
+
+      const separator = baseUrl.includes('?') ? '&' : '?';
+      const targetUrl = `${baseUrl}${separator}package=${encodeURIComponent(pkgName)}&answers=${encodeURIComponent(shorthandStr)}#${fragment}`;
+
       showToast("Redirecting to Free Trial Class Registration...");
       setTimeout(() => {
-        window.open(FREE_TRIAL_LINK, "_blank");
+        window.open(targetUrl, "_blank");
       }, 300);
     }
 
